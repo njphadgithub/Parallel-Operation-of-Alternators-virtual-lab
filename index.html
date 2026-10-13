@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel Operation of Alternators - Virtual Lab</title>
+    <style>
+        :root {
+            --primary-blue: #1171bd;
+            --primary-red: #cc0000;
+            --bus-green: #3baf32;
+            --panel-bg: #f8f9fa;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 5px;
+            color: #333;
+            box-sizing: border-box;
+        }
+        .app-container {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            padding: 10px;
+            position: relative;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 6px;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 6px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #1a1a1a;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 10px;
+        }
+        @media (max-width: 1100px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: var(--panel-bg);
+            border: 3px solid #ccc;
+            border-radius: 5px;
+            padding: 8px;
+            position: relative;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .panel-blue { border-color: #1171bd; }
+        .panel-red { border-color: #cc0000; }
+        .panel-green { border-color: #3baf32; }
+        .panel-yellow { border-color: #ecc94b; }
+
+        .panel-title {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            padding: 0 8px;
+            font-weight: bold;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .messagelog-bar {
+            background-color: #ffeb3b;
+            text-align: center;
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            font-size: 19px;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border: 2px solid #fbc02d;
+            color: #1a1a1a;
+        }
+        canvas {
+            background: #ffffff;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .control-group {
+            margin: 6px 0;
+            text-align: center;
+        }
+        input[type=range] {
+            width: 100%;
+        }
+        button {
+            background-color: #2e5935;
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        button:hover { background-color: #24462a; }
+        .indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #444;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+            border: 2px solid #222;
+        }
+        .indicator.on { background-color: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        .bottom-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.4fr;
+            gap: 10px;
+        }
+        @media (max-width: 900px) {
+            .bottom-section { grid-template-columns: 1fr; }
+        }
+        textarea {
+            width: 100%;
+            height: 90px;
+            box-sizing: border-box;
+            font-size: 10.5px;
+            padding: 4px;
+            resize: none;
+        }
+        .switch-container {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 70px;
+            height: 32px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-switch {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 32px;
+        }
+        .slider-switch:before {
+            position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider-switch { background-color: #3baf32; }
+        input:checked + .slider-switch:before { transform: translateX(38px); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Parallel Operation of Alternators App</h1>
+        <div style="font-size: 13px; color: #555; margin-top: 2px;">Created by Dr Nitin Phadkule</div>
+    </header>
+
+    <div id="messageLogBar" class="messagelog-bar">System Ready. Follow instructions in the Message Log panel.</div>
+
+    <div class="main-grid">
+        <div>
+            <div class="panel panel-blue">
+                <div class="panel-title" style="color: #0671bd;">Alternator 1 (Bus Generator)</div>
+                <div style="margin-top: 6px; text-align: center;">
+                    <div id="ind1" class="indicator"></div>
+                    <button id="btn1" onclick="toggleMachine(1)">Start Machine 1</button>
+                </div>
+                
+                <div class="panel" style="margin-top:12px; background:#fff;">
+                    <div class="panel-title">Machine 1 Frequency (Hz)</div>
+                    <div class="control-group" style="margin-top:6px;">
+                        <input type="range" id="freqSlider1" min="48" max="52" step="0.1" value="50.0" oninput="updateControls()">
+                        <span id="freqVal1" style="font-weight:bold; font-size: 13px;">50.0 Hz</span>
+                    </div>
+                </div>
+
+                <div class="panel" style="background:#fff; margin-bottom: 2px;">
+                    <div class="panel-title">Machine 1 Excitation Voltage</div>
+                    <div class="control-group" style="margin-top:6px;">
+                        <input type="range" id="voltSlider1" min="0" max="480" step="1" value="440" oninput="updateControls()">
+                        <span id="voltVal1" style="font-weight:bold; font-size: 13px;">440 V</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel panel-yellow" style="border-color: #666;">
+                <div class="panel-title">Alternators and Synchroscope</div>
+                <canvas id="synchroCanvas" width="540" height="390"></canvas>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel panel-red">
+                <div class="panel-title" style="color: #cc0000;">Alternator 2 (Incoming Generator)</div>
+                <div style="margin-top: 6px; text-align: center;">
+                    <div id="ind2" class="indicator"></div>
+                    <button id="btn2" onclick="toggleMachine(2)" style="background-color: #b33939;">Start Machine 2</button>
+                </div>
+
+                <div class="panel" style="margin-top:12px; background:#fff;">
+                    <div class="panel-title">Machine 2 frequency (Hz)</div>
+                    <div class="control-group" style="margin-top:6px;">
+                        <input type="range" id="freqSlider2" min="48" max="52" step="0.1" value="50.8" oninput="updateControls()">
+                        <span id="freqVal2" style="font-weight:bold; font-size: 13px;">50.8 Hz</span>
+                    </div>
+                </div>
+
+                <div class="panel" style="background:#fff; margin-bottom: 2px;">
+                    <div class="panel-title">Machine 2 Excitation Voltage</div>
+                    <div class="control-group" style="margin-top:6px;">
+                        <input type="range" id="voltSlider2" min="0" max="480" step="1" value="465" oninput="updateControls()">
+                        <span id="voltVal2" style="font-weight:bold; font-size: 13px;">465 V</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <div class="panel panel-green" style="margin-bottom: 0;">
+            <div class="panel-title" style="color: #2e7d32;">BUSBAR (System)</div>
+            <div style="display: flex; justify-content: space-around; align-items: center; margin-top: 6px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 11px; font-weight: bold;">Bus Voltage</div>
+                    <div id="busVoltDisp" style="font-size: 18px; font-weight: bold; color: #1171bd;">0 V</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 11px; font-weight: bold;">Bus Frequency</div>
+                    <div id="busFreqDisp" style="font-size: 18px; font-weight: bold; color: #1171bd;">0.0 Hz</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel panel-green" style="margin-bottom: 0;">
+            <div class="panel-title" style="color: #2e7d32;">Parallel Breaker Switch</div>
+            <div class="switch-container" style="padding: 4px 0;">
+                <label class="switch">
+                    <input type="checkbox" id="breakerSwitch" onclick="toggleBreaker(this)">
+                    <span class="slider-switch"></span>
+                </label>
+                <div style="font-size: 11px; font-weight: bold; margin-top: 2px;">Synchronizing Breaker</div>
+            </div>
+        </div>
+
+        <div class="panel" style="border-color: #d4af37; margin-bottom: 0;">
+            <div class="panel-title" style="color: #b8860b;">VIRTUAL SYNCHRONIZATION LAB PROCEDURE</div>
+            <textarea readonly>
+1. Start Alternator 1 to energize Busbar.
+2. Start Alternator 2 and adjust sliders.
+3. MATCH TOLERANCES: Δf &lt; 0.3 Hz, ΔV &lt; 20 V, Phase &lt; 10° at 12 o'clock.
+4. SYNCHROSCOPE: SLOW (Left) = Freq low, FAST (Right) = Freq high.
+5. 3-LAMP DARK METHOD: Lamps go dark when phases & voltages match.
+6. Close Parallel Breaker safely.</textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isRunning1 = false;
+    let isRunning2 = false;
+    let breakerClosed = false;
+
+    let freq1 = 50.0, freq2 = 50.8;
+    let volt1 = 440, volt2 = 465;
+    let phaseAngle = 0.0;
+    let rotorAngle1 = 0.0;
+    let rotorAngle2 = 0.0;
+
+    const canvas = document.getElementById("synchroCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function updateControls() {
+        freq1 = parseFloat(document.getElementById("freqSlider1").value);
+        volt1 = parseInt(document.getElementById("voltSlider1").value);
+        freq2 = parseFloat(document.getElementById("freqSlider2").value);
+        volt2 = parseInt(document.getElementById("voltSlider2").value);
+
+        document.getElementById("freqVal1").innerText = freq1.toFixed(1) + " Hz";
+        document.getElementById("voltVal1").innerText = volt1 + " V";
+        document.getElementById("freqVal2").innerText = freq2.toFixed(1) + " Hz";
+        document.getElementById("voltVal2").innerText = volt2 + " V";
+    }
+
+    function toggleMachine(num) {
+        if (num === 1) {
+            isRunning1 = !isRunning1;
+            const btn = document.getElementById("btn1");
+            const ind = document.getElementById("ind1");
+            if (isRunning1) {
+                btn.innerText = "Stop Machine 1";
+                ind.classList.add("on");
+                document.getElementById("messageLogBar").innerText = "Alternator 1 started and energized the main Busbar.";
+            } else {
+                btn.innerText = "Start Machine 1";
+                ind.classList.remove("on");
+                if (breakerClosed) {
+                    document.getElementById("breakerSwitch").checked = false;
+                    toggleBreaker(document.getElementById("breakerSwitch"));
+                }
+                isRunning2 = false;
+                document.getElementById("btn2").innerText = "Start Machine 2";
+                document.getElementById("ind2").classList.remove("on");
+                document.getElementById("messageLogBar").innerText = "Alternator 1 shut down.";
+            }
+        } else if (num === 2) {
+            if (!isRunning1) {
+                alert("WARNING: Start Alternator 1 (Busbar) first!");
+                return;
+            }
+            isRunning2 = !isRunning2;
+            const btn = document.getElementById("btn2");
+            const ind = document.getElementById("ind2");
+            if (isRunning2) {
+                btn.innerText = "Stop Machine 2";
+                ind.classList.add("on");
+                document.getElementById("messageLogBar").innerText = "Alternator 2 started. Adjust Freq & Volt to match Busbar.";
+            } else {
+                btn.innerText = "Start Machine 2";
+                ind.classList.remove("on");
+                if (breakerClosed) {
+                    document.getElementById("breakerSwitch").checked = false;
+                    toggleBreaker(document.getElementById("breakerSwitch"));
+                }
+                document.getElementById("messageLogBar").innerText = "Alternator 2 stopped.";
+            }
+        }
+    }
+
+    function toggleBreaker(checkbox) {
+        if (checkbox.checked) {
+            if (!isRunning2) {
+                checkbox.checked = false;
+                document.getElementById("messageLogBar").innerText = "ERROR: Alternator 2 is not running!";
+                return;
+            }
+            let freqDiff = Math.abs(freq1 - freq2);
+            let voltDiff = Math.abs(volt1 - volt2);
+            let phaseDiff = Math.abs(phaseAngle);
+
+            if (freqDiff < 0.3 && voltDiff < 20 && phaseDiff < 10) {
+                breakerClosed = true;
+                checkbox.checked = true;
+                document.getElementById("messageLogBar").innerText = `SUCCESS: Paralleled! Freq Diff: ${freqDiff.toFixed(1)} Hz, Volt Diff: ${voltDiff.toFixed(0)} V`;
+            } else {
+                breakerClosed = false;
+                checkbox.checked = false;
+                document.getElementById("messageLogBar").innerText = `DANGER: Out-of-phase fault! Freq Diff: ${freqDiff.toFixed(1)} Hz, Phase: ${phaseDiff.toFixed(1)}°`;
+            }
+        } else {
+            breakerClosed = false;
+            document.getElementById("messageLogBar").innerText = "Parallel breaker opened. Alt 2 isolated.";
+        }
+    }
+
+    setInterval(() => {
+        if (isRunning1) {
+            rotorAngle1 = (rotorAngle1 + freq1 * 0.8) % 360;
+        }
+        if (isRunning2) {
+            rotorAngle2 = (rotorAngle2 + freq2 * 0.8) % 360;
+            if (breakerClosed) {
+                freq2 = freq1;
+                phaseAngle = 0.0;
+            } else {
+                let slipFreq = freq2 - freq1;
+                if (Math.abs(slipFreq) < 0.01) {
+                    phaseAngle = 0.0;
+                } else {
+                    phaseAngle = (phaseAngle + slipFreq * 3.5);
+                    if (phaseAngle > 180) phaseAngle -= 360;
+                    if (phaseAngle < -180) phaseAngle += 360;
+                }
+            }
+        } else {
+            phaseAngle = 0.0;
+        }
+
+        if (isRunning1) {
+            document.getElementById("busVoltDisp").innerText = volt1 + " V";
+            document.getElementById("busFreqDisp").innerText = freq1.toFixed(1) + " Hz";
+        } else {
+            document.getElementById("busVoltDisp").innerText = "0 V";
+            document.getElementById("busFreqDisp").innerText = "0.0 Hz";
+        }
+
+        if (isRunning1 && isRunning2 && !breakerClosed) {
+            let freqDiff = freq2 - freq1;
+            let voltDiff = volt2 - volt1;
+            if (Math.abs(freqDiff) <= 0.2 && Math.abs(voltDiff) <= 15) {
+                document.getElementById("messageLogBar").innerText = "Parameters Matched! Wait for 12 o'clock & close switch.";
+            } else {
+                let fText = freqDiff > 0.2 ? "Decrease Freq" : (freqDiff < -0.2 ? "Increase Freq" : "Freq OK");
+                let vText = voltDiff > 10 ? "Decrease Volt" : (voltDiff < -10 ? "Increase Volt" : "Volt OK");
+                document.getElementById("messageLogBar").innerText = `F1:${freq1.toFixed(1)} | F2:${freq2.toFixed(1)} (${fText})  ||  V1:${volt1} | V2:${volt2} (${vText})`;
+            }
+        }
+
+        drawSynchroscopeScene();
+    }, 33);
+
+    function drawSynchroscopeScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let cx = canvas.width / 2;
+        let cy = 175;
+
+        ctx.beginPath();
+        ctx.arc(cx, 30, 18, 0, 2 * Math.PI);
+        ctx.fillStyle = breakerClosed ? "#00ff00" : "#2e5a2e";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#daa520";
+        ctx.stroke();
+
+        ctx.fillStyle = "#222";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Sync Success Lamp", cx, 60);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 88, 0, 2 * Math.PI);
+        ctx.fillStyle = "#26262e";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 78, 0, 2 * Math.PI);
+        ctx.fillStyle = "#fcfcfc";
+        ctx.fill();
+        ctx.strokeStyle = "#666";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        for (let t = 0; t < 360; t += 30) {
+            let rad = (t * Math.PI) / 180;
+            let rIn = t % 90 === 0 ? 62 : 68;
+            let rOut = 74;
+            ctx.beginPath();
+            ctx.moveTo(rIn * Math.cos(rad), rIn * Math.sin(rad));
+            ctx.lineTo(rOut * Math.cos(rad), rOut * Math.sin(rad));
+            ctx.strokeStyle = "#222";
+            ctx.lineWidth = t % 90 === 0 ? 2 : 1;
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = "#cc0000";
+        ctx.font = "bold 10px Arial";
+        ctx.fillText("SLOW", -50, 4);
+        ctx.fillText("FAST", 32, 4);
+        
+        ctx.fillStyle = "#333";
+        ctx.font = "bold 8px Arial";
+        ctx.fillText("SYNCHROSCOPE", 0, 48);
+
+        ctx.beginPath();
+        ctx.moveTo(0, -70);
+        ctx.lineTo(-5, -58);
+        ctx.lineTo(5, -58);
+        ctx.fillStyle = "#28a745";
+        ctx.fill();
+
+        let mismatch = (Math.abs(volt1 - volt2) / 480) + (Math.abs(phaseAngle) / 180);
+        let lampColor = mismatch < 0.05 ? "#444" : `rgb(${Math.floor(255*Math.min(1,mismatch))}, ${Math.floor(200*Math.min(1,mismatch))}, 20)`;
+        
+        ctx.beginPath();
+        ctx.arc(-105, 0, 14, 0, 2 * Math.PI);
+        ctx.fillStyle = lampColor;
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(105, 0, 14, 0, 2 * Math.PI);
+        ctx.fillStyle = lampColor;
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#222";
+        ctx.font = "bold 10px Arial";
+        ctx.fillText("Lamp L", -105, 24);
+        ctx.fillText("Lamp R", 105, 24);
+
+        let needleRad = ((phaseAngle - 90) * Math.PI) / 180;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(62 * Math.cos(needleRad), 62 * Math.sin(needleRad));
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = "#888";
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+
+        drawAlternatorUnit(100, 290, isRunning1, rotorAngle1, "Alternator 1");
+        drawAlternatorUnit(canvas.width - 100, 290, isRunning2, rotorAngle2, "Alternator 2");
+    }
+
+    function drawAlternatorUnit(x, y, isRunning, rotorAngle, label) {
+        ctx.beginPath();
+        ctx.arc(x, y, 65, 0, 2 * Math.PI);
+        ctx.fillStyle = "#2c5282";
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "#1a365d";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 48, 0, 2 * Math.PI);
+        ctx.fillStyle = "#edf2f7";
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(x, y);
+        if (isRunning) {
+            ctx.rotate((rotorAngle * Math.PI) / 180);
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, 2 * Math.PI);
+            ctx.fillStyle = "#718096";
+            ctx.fill();
+            ctx.stroke();
+
+            for (let p = 0; p < 4; p++) {
+                ctx.save();
+                ctx.rotate((p * Math.PI) / 2);
+                ctx.fillStyle = p % 2 === 0 ? "#e53e3e" : "#3182ce";
+                ctx.fillRect(-10, -38, 20, 24);
+                ctx.strokeStyle = "#000";
+                ctx.strokeRect(-10, -38, 20, 24);
+                
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 11px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(p % 2 === 0 ? "N" : "S", 0, -22);
+                ctx.restore();
+            }
+        } else {
+            ctx.beginPath();
+            ctx.arc(0, 0, 34, 0, 2 * Math.PI);
+            ctx.fillStyle = "#a0aec0";
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 11px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("IDLE", 0, 4);
+        }
+        ctx.restore();
+
+        ctx.fillStyle = isRunning ? "#276749" : "#718096";
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(label + (isRunning ? " (Running)" : " (Off)"), x, y + 80);
+    }
+
+    updateControls();
+</script>
+</body>
+</html>
